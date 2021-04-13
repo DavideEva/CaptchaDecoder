@@ -115,3 +115,17 @@ def x_intersection(a, b):
   else:
     overlap = a[1] + height(a) - b[1]
   return (overlap / height(a) + overlap / height(b)) / 2
+
+
+def check_rect(rect, image_shape):
+  """
+  :param rect: the rect to put into the image
+  :param image_shape: the image shape
+  :return: a rectangle that doesn't exit from the image
+  """
+  x, y = max(rect[0], 0), max(rect[1], 0)
+  h, w = image_shape[:2]
+  assert rect[2] <= w and rect[3] <= h
+  w = min(rect[2], w - x)
+  h = min(rect[3], h - y)
+  return x, y, w, h
