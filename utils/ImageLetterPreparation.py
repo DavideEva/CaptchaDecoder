@@ -1,8 +1,8 @@
 import numpy as np
 from math import ceil
 
-from utils.Rectangles import get_rect
-from utils.Rectangles import check_rect
+from .Rectangles import get_rect
+from .Rectangles import check_rect
 
 
 class LabelBinarizer:
