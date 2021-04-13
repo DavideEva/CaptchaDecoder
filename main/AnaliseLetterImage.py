@@ -20,12 +20,12 @@ def load_image(image_path, load_gray=True):
 
 
 def main():
-  files = get_file_paths(folder_path='./samples/letters/train', search_pattern='*.npy')
+  files = get_file_paths(folder_path='../samples/letters/train', search_pattern='*.npy')
   letters_list = np.unique(list(map(lambda x: list(get_title_from_path(x)), files)))
   letters_list = np.append(letters_list, '_')
   lb = LabelBinarizer(letters_list)
-  image_letters = np.load('./samples/letters/train/5mfff.npy')
-  image = load_image('./samples/samples/train/5mfff.png')
+  image_letters = np.load('../samples/letters/train/5mfff.npy')
+  image = load_image('../samples/samples/train/5mfff.png')
   ez = np.ones((lb.get_size(),))
   ez[lb.index('_')] = 7e-1
 

@@ -46,7 +46,7 @@ def convert_list_file(file_list):
 
 def download_font():
   url = "https://www.freebestfonts.com/download?fn=257"
-  font_path = 'resources/Arial.ttf'
+  font_path = '../resources/Arial.ttf'
   r = requests.get(url, allow_redirects=True)
   with open(font_path, 'wb') as af:
     af.write(r.content)
@@ -58,7 +58,7 @@ def letter_to_binary(letter):
 
 
 def single_sample():
-  file_path = 'samples/samples/test/wgmwp.png'
+  file_path = '../samples/samples/test/wgmwp.png'
   image = load_image(file_path)
   title = get_title_from_path(file_path)
   results = parse_known_image(image, title)
