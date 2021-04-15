@@ -17,6 +17,7 @@ class LabelBinarizer:
       val = np.zeros((self._size,))
       val[self.index(label_)] = 1
       return val
+
     if len(np.shape(label)) > 0:
       return [self.convert_binary(item) for item in label]
     return _binary(label)
@@ -105,16 +106,17 @@ def image_preparation(image_x, image_letters, classify_fun, **kwargs):
   """
 
   options_dict = {
-    'shape'                : (36, 36),
-    'stride'               : (5, 5),
-    'padding'              : (8, 8),
-    'borders'              : (8, 8, 8, 8),
-    'background_value'     : 255,
-    'background_letter'    : '_',
-    'fill_image': True,
+    'shape'            : (36, 36),
+    'stride'           : (5, 5),
+    'padding'          : (8, 8),
+    'borders'          : (8, 8, 8, 8),
+    'background_value' : 255,
+    'background_letter': '_',
+    'fill_image'       : True,
     **kwargs
   }
-  output_size = (np.array(options_dict['shape']) - np.array(options_dict['padding'])*2) / np.array(options_dict['stride'])
+  output_size = (np.array(options_dict['shape']) - np.array(options_dict['padding']) * 2) / np.array(
+    options_dict['stride'])
   output_size = output_size.astype(np.uint8)
 
   # add border
@@ -122,7 +124,7 @@ def image_preparation(image_x, image_letters, classify_fun, **kwargs):
   image_with_border = cv2.copyMakeBorder(image_x, top, bottom, left, right,
                                          cv2.BORDER_CONSTANT, None, options_dict['background_value'])
 
-  #split the image
+  # split the image
   images_x, rects_x = image_split(image_with_border,
                                   add_extra_end_crop=True,
                                   shape=options_dict['shape'],
@@ -131,14 +133,17 @@ def image_preparation(image_x, image_letters, classify_fun, **kwargs):
 
   stride_x, stride_y = options_dict['stride']
   y_r, x_r = image_letters.shape[:2]
-  reduced_image_letter = np.full((int(y_r/stride_y), int(x_r/stride_x),), options_dict['background_value'])
+  reduced_image_letter = np.full((int(y_r / stride_y), int(x_r / stride_x),), options_dict['background_value'])
 
   for y_index, y in enumerate(range(0, y_r, stride_y)):
     for x_index, x in enumerate(range(0, x_r, stride_x)):
       reduced_image_letter[y_index, x_index] = classify_fun(get_rect(image_letters, (x, y, stride_x, stride_y)))
 
-  px, py = options_dict['padding']
-  y_out = [reduced_image_letter[int(y/stride_y):int(y/stride_y)+output_size[1], int(x/stride_x):int(x/stride_x)+output_size[0]] for x, y, _, _ in rects_x]
+  # px, py = options_dict['padding']
+  y_out = [
+    get_rect(reduced_image_letter, (int(x / stride_x), int(y / stride_y), output_size[0], output_size[1]))
+    for x, y, _, _ in rects_x
+  ]
 
   return np.array(images_x), np.array(y_out)
 

@@ -25,7 +25,7 @@ def main():
   letters_list = np.unique(list(map(lambda x: list(get_title_from_path(x)), files)))
   letters_list = np.append(letters_list, '_')
   lb = LabelBinarizer(letters_list)
-  test_size = 100
+  test_size = 2
   images_filename = [x.replace('letters', 'samples').replace('.npy', '.png') for x in files]
   images_letters = [np.load(x) for x in files[:test_size]]
   images = [load_image(x) for x in images_filename]
@@ -48,16 +48,18 @@ def main():
   for image, image_letters in zip(images, images_letters):
     X_y.append(image_preparation(image, image_letters, classify_fun=image_letter_to_value, **options))
   x, y = zip(*X_y)
+  x, y = np.array(x), np.array(y)
+  x, y = x.reshape((-1, *x.shape[2:])), y.reshape((-1, *y.shape[2:]))
   end = time()
   total_time = end - start
   print('total time ', total_time, ', time for image ', total_time/test_size)
   print(np.shape(x), np.shape(y))
-  # for x_, y_ in zip(x, y):
-  #   print(x_, y_, lb.get_label(y_))
-  #   plt.title(lb.get_label(y_))
-  #   plt.subplot(211).imshow(x_)
-  #   plt.subplot(212).imshow(y_)
-  #   plt.show()p
+  for x_, y_ in zip(x, y):
+    print(x_, y_, lb.get_label(y_))
+    plt.title(lb.get_label(y_))
+    plt.subplot(211).imshow(x_)
+    plt.subplot(212).imshow(y_)
+    plt.show()
 
 
 if __name__ == '__main__':
