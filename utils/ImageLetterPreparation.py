@@ -1,3 +1,4 @@
+import cv2
 import numpy as np
 from math import ceil
 
@@ -81,13 +82,14 @@ def image_split(image, add_extra_end_crop=True, **kwargs):
 
   tuples = np.unique(output_rect, axis=0)
 
-  res_images = []
-  rects = []
-  for x, y in tuples:
-    rect = (x, y, shape_w, shape_h)
-    res_image = get_rect(image, rect)
-    res_images.append(res_image.copy())
-    rects.append(rect)
+  rects, res_images = zip(*[((x, y, shape_w, shape_h), get_rect(image, (x, y, shape_w, shape_h))) for x, y in tuples])
+  # res_images = []
+  # rects = []
+  # for x, y in tuples:
+  #   rect = (x, y, shape_w, shape_h)
+  #   res_image = get_rect(image, rect)
+  #   res_images.append(res_image.copy())
+  #   rects.append(rect)
 
   return np.array(res_images), np.array(rects)
 
@@ -105,51 +107,40 @@ def image_preparation(image_x, image_letters, classify_fun, **kwargs):
   options_dict = {
     'shape'                : (36, 36),
     'stride'               : (5, 5),
-    'padding'              : (0, 0),
-    'shape_prediction'     : (10, 10),
-    'stride_prediction'    : (5, 5),
-    'padding_prediction'   : (3, 3),
+    'padding'              : (8, 8),
+    'borders'              : (8, 8, 8, 8),
+    'background_value'     : 255,
+    'background_letter'    : '_',
     'fill_image': True,
     **kwargs
   }
+  output_size = (np.array(options_dict['shape']) - np.array(options_dict['padding'])*2) / np.array(options_dict['stride'])
+  output_size = output_size.astype(np.uint8)
 
-  def get_images(image_):
-    return image_split(image_,
-                       add_extra_end_crop = options_dict['fill_image'],
-                       stride=options_dict['stride'],
-                       shape=options_dict['shape'],
-                       padding=options_dict['padding'],
-                       )[0]
+  # add border
+  top, bottom, left, right = options_dict['borders']
+  image_with_border = cv2.copyMakeBorder(image_x, top, bottom, left, right,
+                                         cv2.BORDER_CONSTANT, None, options_dict['background_value'])
 
-  def get_class(image_):
-    sub_images, rects = image_split(image_,
-                                    add_extra_end_crop=options_dict['fill_image'],
-                                    shape=options_dict['shape_prediction'],
-                                    stride=options_dict['stride_prediction'],
-                                    padding=options_dict['padding_prediction'])
+  #split the image
+  images_x, rects_x = image_split(image_with_border,
+                                  add_extra_end_crop=True,
+                                  shape=options_dict['shape'],
+                                  stride=options_dict['stride'],
+                                  padding=options_dict['padding'])
 
-    output_shape = (image_.shape -
-                    np.array(options_dict['padding_prediction']) * 2 -
-                    np.array(options_dict['shape_prediction'])) / np.array(options_dict['stride_prediction'])
-    output_shape += [1, 1]
-    output_shape = np.vectorize(ceil)(output_shape)
-    output = np.full(output_shape.astype(np.uint8)[:2], 0)
-    # print(output_shape, output)
-    for sub_image, rect in zip(sub_images, rects):
-      x = int((rect[0] - options_dict['padding_prediction'][0]) / options_dict['stride_prediction'][0])
-      y = int((rect[1] - options_dict['padding_prediction'][1]) / options_dict['stride_prediction'][1])
-      rect_new = check_rect(
-        ((rect[0] - options_dict['padding_prediction'][0]),                                 # x
-         (rect[1] - options_dict['padding_prediction'][1]),                                 # y
-         options_dict['shape_prediction'][0] + options_dict['padding_prediction'][0] * 2,   # w
-         options_dict['shape_prediction'][1] + options_dict['padding_prediction'][1] * 2),  # h
-        image_.shape)
-      # print(rect, rect_new)
-      image_to_evaluate = get_rect(image_, rect_new)
-      output[y, x] = classify_fun(image_to_evaluate)
-    return output
+  stride_x, stride_y = options_dict['stride']
+  y_r, x_r = image_letters.shape[:2]
+  reduced_image_letter = np.full((int(y_r/stride_y), int(x_r/stride_x),), options_dict['background_value'])
 
-  return split_and_classify_image(image_x, image_letters, get_images, get_class)
+  for y_index, y in enumerate(range(0, y_r, stride_y)):
+    for x_index, x in enumerate(range(0, x_r, stride_x)):
+      reduced_image_letter[y_index, x_index] = classify_fun(get_rect(image_letters, (x, y, stride_x, stride_y)))
+
+  px, py = options_dict['padding']
+  y_out = [reduced_image_letter[int(y/stride_y):int(y/stride_y)+output_size[1], int(x/stride_x):int(x/stride_x)+output_size[0]] for x, y, _, _ in rects_x]
+
+  return np.array(images_x), np.array(y_out)
 
 
 def split_and_classify_image(image_x, image_letters, split_fun, classify_fun):
