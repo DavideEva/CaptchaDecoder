@@ -14,7 +14,7 @@ def rgb_sim(color1, color2):
   r1, g1, b1 = color1
   r2, g2, b2 = color2
   n = math.sqrt((r2 - r1) ** 2 + (g2 - g1) ** 2 + (b2 - b1) ** 2)
-  d = math.sqrt((255) ** 2 + (255) ** 2 + (255) ** 2)
+  d = math.sqrt(255 ** 2 + 255 ** 2 + 255 ** 2)
   return 1 - n / d
 
 
@@ -37,3 +37,12 @@ class ColorMap:
       for i, cell in enumerate(row):
         result[j, i] = self.convert_letter(cell)
     return result
+
+
+class LetterImage:
+  def __init__(self, letter_image):
+    self.letter_image = letter_image
+
+  def get_title(self):
+    # analise the image TODO
+    pass

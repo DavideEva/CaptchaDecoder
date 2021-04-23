@@ -2,8 +2,8 @@ import cv2
 import numpy as np
 from math import ceil
 
-from .Rectangles import get_rect
-from .Rectangles import check_rect
+from utils.Rectangles import get_rect
+from utils.Rectangles import check_rect
 
 
 class LabelBinarizer:
@@ -41,13 +41,40 @@ class LabelBinarizer:
     return self._size
 
 
+def image_split_coordinate(shape, shape_rect, stride, add_last_rect=True):
+  """
+  :param shape:
+  :param shape_rect:
+  :param stride:
+  :param add_last_rect:
+  :return: a list of rectangle of type (x, y, w, h) represent rectangles in an image of shape=shape
+  """
+  image_w, image_h = shape
+  rect_w, rect_h = shape_rect
+  stride_x, stride_y = stride
+  extra_w, extra_h = [], []
+  if add_last_rect:
+    extra_h = [image_h - rect_h, ]
+    extra_w = [image_w - rect_w, ]
+
+  output_rect = []
+  for y in list(range(0, image_h - rect_h + 1, stride_y)) + extra_h:
+    for x in list(range(0, image_w - rect_w + 1, stride_x)) + extra_w:
+      output_rect.append((x, y))
+
+  tuples = np.unique(output_rect, axis=0)
+
+  return [(x, y, rect_w, rect_h) for (x, y) in tuples]
+
+
 def image_split(image, add_extra_end_crop=True, **kwargs):
   """
     return an array of tuple crop_images, rects
     where rect contain the rectangle information relative to the cropped image
 
     :shape: tuple w, h of split shape
-    :steps: tuple w, h of step between every split
+    :stride: tuple w, h
+    :padding: value
 
     if add_extra_end_crop is True create also the last rect matching end of rows and/or columns
 
@@ -58,94 +85,99 @@ def image_split(image, add_extra_end_crop=True, **kwargs):
       (2,2,7,7)
       and (3,2,7,7) that not respect the steps(2, 2) but includes all the points in image
   """
-  options = {
+  kwargs = {
     "shape"  : (36, 36),
     "stride" : (1, 1),
-    "padding": (0, 0),
     **kwargs
   }
 
-  image_h, image_w = image.shape[:2]
-  shape_w, shape_h = options['shape']
-  step_x, step_y = options['stride']
-  padding_x, padding_y = options['padding']
-  # print(options)
-  extra_h = []
-  extra_w = []
-  if add_extra_end_crop:
-    extra_h = [(image_h - padding_y) - shape_h, ]
-    extra_w = [(image_w - padding_x) - shape_w, ]
+  tuples = image_split_coordinate(image.shape[:2], kwargs['shape'], kwargs['stride'], add_last_rect=add_extra_end_crop)
 
-  output_rect = []
-  for y in list(range(padding_y, (image_h - padding_y) - shape_h + 1, step_y)) + extra_h:
-    for x in list(range(padding_x, (image_w - padding_x) - shape_w + 1, step_x)) + extra_w:
-      output_rect.append((x, y))
-
-  tuples = np.unique(output_rect, axis=0)
-
-  rects, res_images = zip(*[((x, y, shape_w, shape_h), get_rect(image, (x, y, shape_w, shape_h))) for x, y in tuples])
-  # res_images = []
-  # rects = []
-  # for x, y in tuples:
-  #   rect = (x, y, shape_w, shape_h)
-  #   res_image = get_rect(image, rect)
-  #   res_images.append(res_image.copy())
-  #   rects.append(rect)
+  rects, res_images = zip(*[((x, y, w, h), get_rect(image, (x, y, w, h))) for x, y, w, h in tuples])
 
   return np.array(res_images), np.array(rects)
 
 
-def image_preparation(image_x, image_letters, classify_fun, **kwargs):
-  """
-    Layout:
-      Train image shape : 36x36 pixel
-      Train output : 3 x 3 pixel, corresponding to the 30 x 30 centered pixel
+def add_constant_border(image, border_value, background_value=255):
+  return cv2.copyMakeBorder(image,
+                            border_value,  # top
+                            border_value,  # bottom
+                            border_value,  # left
+                            border_value,  # right
+                            cv2.BORDER_REFLECT, None)
 
-    Every output cell corresponds to an area of 15x15 that's overfit the 12x12 area to improve
-    the ability of understand the behavior.
-  """
 
-  options_dict = {
-    'shape'            : (36, 36),
+def mix_multilayer_image(image_shape, values, rects):
+  assert len(image_shape) == 3
+  output_image = np.full(image_shape, .0)
+  for value, rect in zip(values, rects):
+    x, y, w, h = rect
+    sub_image = np.full((h, w, image_shape[2]), value)
+    output_image[y:y + h, x:x + w] += sub_image
+  return output_image
+
+
+def image_preparation(image, image_letters, classify_fun, **kwargs):
+  kwargs = {
+    'shape'            : (20, 20),
     'stride'           : (5, 5),
-    'padding'          : (8, 8),
-    'borders'          : (8, 8, 8, 8),
+    'padding'          : 8,
     'background_value' : 255,
     'background_letter': '_',
-    'fill_image'       : True,
     **kwargs
   }
-  output_size = (np.array(options_dict['shape']) - np.array(options_dict['padding']) * 2) / np.array(
-    options_dict['stride'])
-  output_size = output_size.astype(np.uint8)
+
+  rects = image_split_coordinate(image.shape[2::-1], kwargs['shape'], kwargs['stride'])
 
   # add border
-  top, bottom, left, right = options_dict['borders']
-  image_with_border = cv2.copyMakeBorder(image_x, top, bottom, left, right,
-                                         cv2.BORDER_CONSTANT, None, options_dict['background_value'])
+  image_with_border = add_constant_border(image,  # image
+                                          kwargs['padding'],  # border size
+                                          background_value=kwargs['background_value'])  # border value
 
-  # split the image
-  images_x, rects_x = image_split(image_with_border,
-                                  add_extra_end_crop=True,
-                                  shape=options_dict['shape'],
-                                  stride=options_dict['stride'],
-                                  padding=options_dict['padding'])
+  # in image_with_border the image start at point (pad, pad) and end at point (h-pad, w-pad)
 
-  stride_x, stride_y = options_dict['stride']
-  y_r, x_r = image_letters.shape[:2]
-  reduced_image_letter = np.full((int(y_r / stride_y), int(x_r / stride_x),), options_dict['background_value'])
+  X_images = []
+  y = []
+  pad = kwargs['padding']
+  for (x_, y_, w, h) in rects:
+    image_w = w + pad*2
+    image_h = h + pad*2
+    X_images.append(get_rect(image_with_border, (x_, y_, image_w, image_h)))
+    y.append(classify_fun(get_rect(image_letters, (x_, y_, w, h))))
 
-  for y_index, y in enumerate(range(0, y_r, stride_y)):
-    for x_index, x in enumerate(range(0, x_r, stride_x)):
-      reduced_image_letter[y_index, x_index] = classify_fun(get_rect(image_letters, (x, y, stride_x, stride_y)))
-
-  # px, py = options_dict['padding']
-  y_out = [
-    get_rect(reduced_image_letter, (int(x / stride_x), int(y / stride_y), output_size[0], output_size[1]))
-    for x, y, _, _ in rects_x
-  ]
-
-  return np.array(images_x), np.array(y_out)
+  return np.array(X_images), np.array(y)
+  #
+  # output_y_size = (np.array(kwargs['shape']) - np.array((kwargs['padding'], kwargs['padding'])) * 2) / np.array(
+  #   kwargs['stride'])
+  # output_y_size = output_y_size.astype(np.uint8)
+  #
+  #
+  # # split the image
+  # images, rects_with_border = image_split(image_with_border,
+  #                                         shape=kwargs['shape'],
+  #                                         stride=kwargs['stride'],
+  #                                         padding=(kwargs['padding'], kwargs['padding'])
+  #                                         )
+  #
+  # stride_x, stride_y = kwargs['stride']
+  #
+  # images_letter, r = image_split(image_letters,
+  #                                shape=(20,20), #kwargs['shape'],
+  #                                stride=kwargs['stride'])
+  #
+  # print(r)
+  #
+  # pad_x, pad_y = kwargs['padding'], kwargs['padding']
+  # y_out = [get_rect(i, (0, 0, 20, 20)) for i in images_letter]
+  # out_m = []
+  # for i in y_out:
+  #   to_be = np.full(output_y_size, 0)
+  #   for y_ in range(output_y_size[1]):
+  #     for x_ in range(output_y_size[0]):
+  #       to_be[y_, x_] = classify_fun(get_rect(i, (x_ * stride_x, y_ * stride_y, stride_x, stride_y)))
+  #   out_m.append(to_be)
+  #
+  # return np.array(images), np.array(out_m)
 
 
 def split_and_classify_image(image_x, image_letters, split_fun, classify_fun):
