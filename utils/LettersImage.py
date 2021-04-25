@@ -1,6 +1,7 @@
 import numpy as np
 import math
 
+from matplotlib.lines import Line2D
 
 colors = [
     [230, 25, 75],    [60, 180, 75],    [255, 225, 25], [0, 130, 200],
@@ -37,6 +38,16 @@ class ColorMap:
       for i, cell in enumerate(row):
         result[j, i] = self.convert_letter(cell)
     return result
+
+  def get_legend_elements(self, background='_'):
+    keys = list(self.color_dict.keys() - background)
+    values = [self.color_dict[k] for k in keys]
+    return list(map(
+      lambda d: Line2D([0], [0],
+                       color=tuple(np.array(d[1]) / 255),
+                       linewidth=5,
+                       label=d[0], ),
+      zip(keys, values)))
 
 
 class LetterImage:

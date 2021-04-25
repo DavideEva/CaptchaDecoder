@@ -12,14 +12,14 @@ class LabelBinarizer:
     self.labels = list(sorted(labels))
     self._size = len(labels)
 
-  def convert_binary(self, label):
+  def convert_to_binary(self, label):
     def _binary(label_):
       val = np.zeros((self._size,))
       val[self.index(label_)] = 1
       return val
 
     if len(np.shape(label)) > 0:
-      return [self.convert_binary(item) for item in label]
+      return [self.convert_to_binary(item) for item in label]
     return _binary(label)
 
   def index(self, label):
@@ -36,6 +36,11 @@ class LabelBinarizer:
     if np.shape(binary) == (self._size,):
       return self.get_label(np.argmax(binary))
     return [self.get_label_from_binary(item) for item in binary]
+
+  def index_to_binary(self, index):
+    if len(np.shape(index)) > 0:
+      return [self.index_to_binary(i) for i in index]
+    return self.convert_to_binary(self.get_label(index))
 
   def get_size(self):
     return self._size
@@ -117,7 +122,7 @@ def mix_multilayer_image(image_shape, values, rects):
   return output_image
 
 
-def image_preparation(image, image_letters, classify_fun, **kwargs):
+def image_preparation(image, image_letters, classify_fun, get_rects=False, **kwargs):
   kwargs = {
     'shape'            : (20, 20),
     'stride'           : (5, 5),
@@ -145,39 +150,9 @@ def image_preparation(image, image_letters, classify_fun, **kwargs):
     X_images.append(get_rect(image_with_border, (x_, y_, image_w, image_h)))
     y.append(classify_fun(get_rect(image_letters, (x_, y_, w, h))))
 
+  if get_rects:
+    return np.array(X_images), np.array(y), rects
   return np.array(X_images), np.array(y)
-  #
-  # output_y_size = (np.array(kwargs['shape']) - np.array((kwargs['padding'], kwargs['padding'])) * 2) / np.array(
-  #   kwargs['stride'])
-  # output_y_size = output_y_size.astype(np.uint8)
-  #
-  #
-  # # split the image
-  # images, rects_with_border = image_split(image_with_border,
-  #                                         shape=kwargs['shape'],
-  #                                         stride=kwargs['stride'],
-  #                                         padding=(kwargs['padding'], kwargs['padding'])
-  #                                         )
-  #
-  # stride_x, stride_y = kwargs['stride']
-  #
-  # images_letter, r = image_split(image_letters,
-  #                                shape=(20,20), #kwargs['shape'],
-  #                                stride=kwargs['stride'])
-  #
-  # print(r)
-  #
-  # pad_x, pad_y = kwargs['padding'], kwargs['padding']
-  # y_out = [get_rect(i, (0, 0, 20, 20)) for i in images_letter]
-  # out_m = []
-  # for i in y_out:
-  #   to_be = np.full(output_y_size, 0)
-  #   for y_ in range(output_y_size[1]):
-  #     for x_ in range(output_y_size[0]):
-  #       to_be[y_, x_] = classify_fun(get_rect(i, (x_ * stride_x, y_ * stride_y, stride_x, stride_y)))
-  #   out_m.append(to_be)
-  #
-  # return np.array(images), np.array(out_m)
 
 
 def split_and_classify_image(image_x, image_letters, split_fun, classify_fun):
