@@ -1,7 +1,11 @@
+import cv2
 import numpy as np
 import math
 
 from matplotlib.lines import Line2D
+
+from utils.Rectangles import rect_intersection_percent
+from utils.TemplateMatching import find_letter_position
 
 colors = [
     [230, 25, 75],    [60, 180, 75],    [255, 225, 25], [0, 130, 200],
@@ -51,9 +55,29 @@ class ColorMap:
 
 
 class LetterImage:
-  def __init__(self, letter_image):
+  def __init__(self, image, letter_image):
+    assert np.shape(image) == np.shape(letter_image)
     self.letter_image = letter_image
+    self.image = image
 
   def get_title(self):
-    # analise the image TODO
-    pass
+    positions = []
+    for letter in np.unique(self.letter_image):
+      if letter != '_':
+        im = self.image.copy()
+        im[self.letter_image != letter] = 255
+        last_valid = True
+        scores = []
+        im_copy = im.copy()
+        while last_valid:
+          rect, score = find_letter_position(im_copy, letter)
+          x, y, w, h = rect
+          if score > 2 and not any([rect_intersection_percent(rect, r) > 0.5 for (r, _) in positions]):
+            scores.append(score)
+            cv2.rectangle(im, (x, y), (x + w, y + h), 125)
+            im_copy[y:y + h, x:x + h] = 255
+            positions.append((rect, letter))
+          else:
+            last_valid = False
+    return ''.join(list(map(lambda x: x[1], sorted(positions, key=lambda x: x[0][0]))))
+

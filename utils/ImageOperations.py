@@ -78,7 +78,7 @@ def erode_option(img):
   return cv2.erode(img, np.ones((3, 3)))
 
 
-def templates_generator(image, optional_transformations=None, return_options=False):
+def templates_generator(image, optional_transformations=None, return_options=False, **kwargs):
   if optional_transformations is None:
     optional_transformations = []
 
@@ -89,13 +89,24 @@ def templates_generator(image, optional_transformations=None, return_options=Fal
   for e in optional_transformations:
     transform_list.append(e)
 
-  rotation_range = 16
-  scale_min_range = 80
-  scale_max_range = 115
-  for i in range(-rotation_range, rotation_range + 1, 2):
+  kwargs = {
+    'rotation_range': 16,
+    'scale_min_range': 80,
+    'scale_max_range': 115,
+    'rotation_step': 2,
+    'scale_step': 3,
+    **kwargs
+  }
+  rotation_range = kwargs['rotation_range']
+  scale_min_range = kwargs['scale_min_range']
+  scale_max_range = kwargs['scale_max_range']
+  rotation_step = kwargs['rotation_step']
+  scale_step = kwargs['scale_step']
+
+  for i in range(-rotation_range, rotation_range + 1, rotation_step):
     rotated_img = rotation(image, i)
-    for scaleX in range(scale_min_range, scale_max_range + 1, 3):
-      for scaleY in range(scale_min_range, scale_max_range + 1, 3):
+    for scaleX in range(scale_min_range, scale_max_range + 1, scale_step):
+      for scaleY in range(scale_min_range, scale_max_range + 1, scale_step):
         for idx, transform in enumerate(transform_list):
           transformed_image = transform(rescale_image(rotated_img, scaleX / 100, scaleY / 100))
           options = (i, scaleX, scaleY, idx)

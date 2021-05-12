@@ -1,33 +1,18 @@
 import os
-from multiprocessing import Pool, cpu_count
 
-import cv2
 from matplotlib.lines import Line2D
 
 from utils.LettersImage import ColorMap
 from utils.TemplateMatching import parse_known_image, image_to_letters_image
 from matplotlib import pyplot as plt
-import requests
+from MainUtils import *
 import numpy as np
 import pandas as pd
 from utils.vr_utilities import get_file_paths
 
 
-def load_image(image_path, load_gray=True):
-  if load_gray:
-    return cv2.imread(image_path, cv2.IMREAD_GRAYSCALE)
-  else:
-    return cv2.cvtColor(cv2.imread(image_path, cv2.IMREAD_GRAYSCALE), cv2.COLOR_GRAY2BGR)
-
-
 def from_png_to_npy(file_path):
   return file_path.replace('.png', '.npy')
-
-
-def get_title_from_path(image_path):
-  if image_path.endswith('.npy'):
-    return image_path.replace(".npy", "").split("/")[-1]
-  return image_path.replace(".png", "").split("/")[-1]
 
 
 def convert_image_and_save(image_file_name, new_file_name, force_update=False):

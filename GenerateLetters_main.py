@@ -1,29 +1,16 @@
 import os
-from multiprocessing import Pool, cpu_count
+from multiprocessing import Pool
 
-import cv2
 from utils.TemplateMatching import parse_known_image, image_to_letters_image
 from matplotlib import pyplot as plt
 import requests
 import numpy as np
 from utils.vr_utilities import get_file_paths
-
-
-def load_image(image_path, load_gray=True):
-  if load_gray:
-    return cv2.imread(image_path, cv2.IMREAD_GRAYSCALE)
-  else:
-    return cv2.cvtColor(cv2.imread(image_path, cv2.IMREAD_GRAYSCALE), cv2.COLOR_GRAY2BGR)
+from MainUtils import *
 
 
 def from_png_to_npy(file_path):
   return file_path.replace('.png', '.npy')
-
-
-def get_title_from_path(image_path):
-  if image_path.endswith('.npy'):
-    return image_path.replace(".npy", "").split("/")[-1]
-  return image_path.replace(".png", "").split("/")[-1]
 
 
 def convert_image_and_save(image_file_name, new_file_name, force_update=False):
@@ -46,7 +33,7 @@ def convert_list_file(file_list):
 
 def download_font():
   url = "https://www.freebestfonts.com/download?fn=257"
-  font_path = '../resources/Arial.ttf'
+  font_path = 'resources/Arial.ttf'
   r = requests.get(url, allow_redirects=True)
   with open(font_path, 'wb') as af:
     af.write(r.content)
@@ -58,7 +45,7 @@ def letter_to_binary(letter):
 
 
 def single_sample():
-  file_path = '../samples/samples/test/wgmwp.png'
+  file_path = 'samples/samples/test/wgmwp.png'
   image = load_image(file_path)
   title = get_title_from_path(file_path)
   results = parse_known_image(image, title)

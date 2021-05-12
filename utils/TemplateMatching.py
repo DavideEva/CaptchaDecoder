@@ -78,13 +78,7 @@ def find_best_template(image, templates, options=None, invalid_positions=None):
   return best_template
 
 
-def specific_threshold(image):
-  return image
-  # return cv2.threshold(image, int(np.mean(image[:2, :2]))-2, 255, cv2.THRESH_BINARY)[1]
-
-
 def parse_known_image(image, title):
-  image = specific_threshold(image.copy())
   results = []
   new_title = ''
   letters = list(title)
@@ -133,3 +127,21 @@ def image_to_letters_image(image, templates, background='_'):
   for tmp in templates:
     output[tmp.letter_image_position == 0] = tmp.letter
   return output
+
+
+def find_letter_position(image, letter, background=255):
+  """
+
+  :param image: a binary image
+  :param letter: the letter to be searched
+  :param background: background value
+  :return: the position of the letter and a score
+  """
+  options = {
+    'rotation_range' : 8,
+    'scale_min_range': 95,
+    'scale_max_range': 110,
+  }
+  templates = templates_generator(generate_letter_image(letter), optional_transformations=[erode_option, ], **options)
+  template = find_best_template(image, templates)
+  return template.rect, template.score
