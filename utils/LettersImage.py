@@ -71,23 +71,39 @@ class LetterImage:
         while last_valid:
           rect, score = find_letter_position(im_copy, letter)
           x, y, w, h = rect
-          candidates = list(filter(lambda t: rect_intersection_percent(rect, t[0]) > 0.6, positions))
-          if len(candidates) == 1 and score > 2:
-            candidates = sorted(candidates, key=lambda t: t[2])
-            if candidates[0][2] > score:
-              last_valid = False
-            else:
-              positions.remove(candidates[0])
+          if w == 0 or h == 0:
+            # No letter found
+            last_valid = False
+          else:
+            candidates = list(filter(lambda t: rect_intersection_percent(rect, t[0]) > 0.4, positions))
+            if len(candidates) == 1 and score > 3:
+              candidates = sorted(candidates, key=lambda t: t[2])
+              if candidates[0][2] > score:
+                last_valid = False
+              else:
+                positions.remove(candidates[0])
+                cv2.rectangle(im, (x, y), (x + w, y + h), 125)
+                im_copy[y:y + h, x:x + h] = 255
+                positions.append((rect, letter, score))
+            elif len(candidates) > 1:
+              print("more than one candidate!")
+              if max(candidates, key=lambda x: x[2])[2] < score:
+                for c in candidates:
+                  positions.remove(c)
+                positions.append((rect, letter, score))
+              elif min(candidates, key=lambda x: x[2])[2] > score:
+                last_valid = False
+              else:
+                tr = list(filter(lambda x: x[2] > score, candidates))
+                for c in tr:
+                  positions.remove(c)
+                positions.append((rect, letter, score))
+
+            elif score > 3:
               cv2.rectangle(im, (x, y), (x + w, y + h), 125)
               im_copy[y:y + h, x:x + h] = 255
               positions.append((rect, letter, score))
-          elif len(candidates) > 1:
-            print("more than one candidate!")
-          elif score > 2:
-            cv2.rectangle(im, (x, y), (x + w, y + h), 125)
-            im_copy[y:y + h, x:x + h] = 255
-            positions.append((rect, letter, score))
-          else:
-            last_valid = False
+            else:
+              last_valid = False
     return ''.join(list(map(lambda x: x[1], sorted(positions, key=lambda x: x[0][0]))))
 

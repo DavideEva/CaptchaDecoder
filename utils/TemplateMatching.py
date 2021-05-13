@@ -139,7 +139,7 @@ def find_letter_position(image, letter, background=255):
   """
   options = {
     'rotation_range' : 8,
-    'scale_min_range': 95,
+    'scale_min_range': 80,
     'scale_max_range': 110,
   }
   templates = templates_generator(generate_letter_image(letter), optional_transformations=[erode_option, ], **options)
