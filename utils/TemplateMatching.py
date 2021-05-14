@@ -1,7 +1,5 @@
 import random
 
-from matplotlib import pyplot as plt
-
 from model.Letter import Letter
 from model.TemplateScore import TemplateScore
 from .Rectangles import get_rect, add_rect, set_rect, y_intersection, x_intersection, rect_intersection_percent
@@ -45,7 +43,8 @@ def find_best_template(image, templates, options=None, invalid_positions=None):
 
     eroded_template = cv2.erode(template, np.ones((3, 3)))
     points_in_common = np.count_nonzero(
-      (get_rect(cut_image, rect_top_left) + eroded_template) <= threshold_boundary)
+      (get_rect(cut_image, rect_top_left) + eroded_template) <= threshold_boundary
+    )
 
     points_in_common = points_in_common * 10 + 1  # corrector
     filter_threshold(cut_image, rect_top_left, eroded_template, threshold_boundary, background_value=255)
@@ -78,13 +77,13 @@ def find_best_template(image, templates, options=None, invalid_positions=None):
   return best_template
 
 
-def parse_known_image(image, title):
+def parse_known_image(image, title, try_count=15):
   results = []
   new_title = ''
   letters = list(title)
   all_permutations = list(itertools.permutations(letters))
   random.shuffle(all_permutations)
-  for new_title, _ in zip(all_permutations, range(15)):
+  for new_title, _ in zip(all_permutations, range(try_count)):
     image_copy = image.copy()
     results = []
     letter_images = []
@@ -144,4 +143,4 @@ def find_letter_position(image, letter, background=255):
   }
   templates = templates_generator(generate_letter_image(letter), optional_transformations=[erode_option, ], **options)
   template = find_best_template(image, templates)
-  return template.rect, template.score
+  return template.rect, template.score, template.crop_image

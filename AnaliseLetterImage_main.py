@@ -16,7 +16,7 @@ def main():
   letters_list = np.unique(list(map(lambda x: list(get_title_from_path(x)), files)))
   letters_list = np.append(letters_list, '_')
   lb = LabelBinarizer(letters_list)
-  test_index = 112
+  test_index = 7
   images_filename = [x.replace('letters', 'samples').replace('.npy', '.png') for x in files]
   image_letters = np.load(files[test_index])
   image = load_image(images_filename[test_index])

@@ -1,4 +1,5 @@
 import cv2
+import matplotlib.pyplot as plt
 import numpy as np
 import math
 
@@ -69,7 +70,7 @@ class LetterImage:
         last_valid = True
         im_copy = im.copy()
         while last_valid:
-          rect, score = find_letter_position(im_copy, letter)
+          rect, score, im_copy_crop = find_letter_position(im_copy, letter)
           x, y, w, h = rect
           if w == 0 or h == 0:
             # No letter found
@@ -83,7 +84,7 @@ class LetterImage:
               else:
                 positions.remove(candidates[0])
                 cv2.rectangle(im, (x, y), (x + w, y + h), 125)
-                im_copy[y:y + h, x:x + h] = 255
+                im_copy = im_copy_crop
                 positions.append((rect, letter, score))
             elif len(candidates) > 1:
               print("more than one candidate!")
@@ -101,9 +102,11 @@ class LetterImage:
 
             elif score > 3:
               cv2.rectangle(im, (x, y), (x + w, y + h), 125)
-              im_copy[y:y + h, x:x + h] = 255
+              im_copy = im_copy_crop
               positions.append((rect, letter, score))
             else:
               last_valid = False
+            plt.imshow(im_copy)
+            plt.show()
     return ''.join(list(map(lambda x: x[1], sorted(positions, key=lambda x: x[0][0]))))
 
