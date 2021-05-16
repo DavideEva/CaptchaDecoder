@@ -2,8 +2,8 @@ import random
 
 from model.Letter import Letter
 from model.TemplateScore import TemplateScore
-from .Rectangles import get_rect, add_rect, set_rect, y_intersection, x_intersection, rect_intersection_percent
-from .ImageOperations import filter_threshold, erode_option, generate_letter_image, templates_generator, threshold
+from utils.Rectangles import get_rect, add_rect, set_rect, y_intersection, x_intersection, rect_intersection_percent
+from utils.ImageOperations import filter_threshold, erode_option, generate_letter_image, templates_generator
 import cv2
 import math
 import numpy as np

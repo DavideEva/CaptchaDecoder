@@ -1,5 +1,3 @@
-import cv2
-import matplotlib.pyplot as plt
 import numpy as np
 import math
 
@@ -56,15 +54,17 @@ class ColorMap:
 
 
 class LetterImage:
-  def __init__(self, image, letter_image):
+  def __init__(self, image, letter_image, background='_'):
     assert np.shape(image) == np.shape(letter_image)
     self.letter_image = letter_image
     self.image = image
+    self.background = background
 
   def get_title(self):
     positions = []
+    score_threshold = 3.0
     for letter in np.unique(self.letter_image):
-      if letter != '_':
+      if letter != self.background:
         im = self.image.copy()
         im[self.letter_image != letter] = 255
         last_valid = True
@@ -76,18 +76,19 @@ class LetterImage:
             # No letter found
             last_valid = False
           else:
+            # search for other letters in thesame position
             candidates = list(filter(lambda t: rect_intersection_percent(rect, t[0]) > 0.4, positions))
-            if len(candidates) == 1 and score > 3:
-              candidates = sorted(candidates, key=lambda t: t[2])
-              if candidates[0][2] > score:
+            if len(candidates) == 1 and score > score_threshold:
+              # Case with only one element in the same space
+              other, = candidates
+              if other[2] > score:
                 last_valid = False
               else:
-                positions.remove(candidates[0])
-                cv2.rectangle(im, (x, y), (x + w, y + h), 125)
+                positions.remove(other)
                 im_copy = im_copy_crop
                 positions.append((rect, letter, score))
             elif len(candidates) > 1:
-              print("more than one candidate!")
+              # case with more than one element in the same space
               if max(candidates, key=lambda x: x[2])[2] < score:
                 for c in candidates:
                   positions.remove(c)
@@ -95,18 +96,14 @@ class LetterImage:
               elif min(candidates, key=lambda x: x[2])[2] > score:
                 last_valid = False
               else:
-                tr = list(filter(lambda x: x[2] > score, candidates))
+                tr = list(filter(lambda x: x[2] < score, candidates))
                 for c in tr:
                   positions.remove(c)
                 positions.append((rect, letter, score))
-
-            elif score > 3:
-              cv2.rectangle(im, (x, y), (x + w, y + h), 125)
+            elif score > score_threshold:
               im_copy = im_copy_crop
               positions.append((rect, letter, score))
             else:
               last_valid = False
-            plt.imshow(im_copy)
-            plt.show()
     return ''.join(list(map(lambda x: x[1], sorted(positions, key=lambda x: x[0][0]))))
 

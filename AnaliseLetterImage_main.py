@@ -58,7 +58,7 @@ def main():
   o = lb.get_label_from_binary(output_multilayer)
   output = np.array(lb.get_label_from_binary(output_multilayer))
 
-  # output[2:5, 8:10] = '5' # add some noise for test
+  # output[4:7, 18:20] = '5' # add some noise for test
 
   cm = ColorMap(output)
   plt.imshow(cm.get_rgb_image())
