@@ -129,3 +129,7 @@ def check_rect(rect, image_shape):
   w = min(rect[2], w - x)
   h = min(rect[3], h - y)
   return x, y, w, h
+
+
+def extend_rect(rect, border_size=1):
+  return max(0, rect[0] - border_size), max(0, rect[1] - border_size), rect[2] + border_size * 2, rect[3] + border_size * 2

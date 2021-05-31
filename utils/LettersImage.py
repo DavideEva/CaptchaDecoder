@@ -1,3 +1,4 @@
+import cv2
 import numpy as np
 import math
 
@@ -53,12 +54,21 @@ class ColorMap:
       zip(keys, values)))
 
 
+def label_to_binary(label, background='_'):
+  return 0 if label == background else 255
+
+
 class LetterImage:
   def __init__(self, image, letter_image, background='_'):
     assert np.shape(image) == np.shape(letter_image)
     self.letter_image = letter_image
     self.image = image
     self.background = background
+
+  def extract_strong_connected_components(self):
+    binary_image = np.vectorize(label_to_binary)(self.letter_image)
+    ret, labels = cv2.connectedComponents(binary_image)
+    pass
 
   def get_title(self):
     positions = []
