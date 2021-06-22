@@ -9,6 +9,9 @@ from utils.vr_utilities import get_file_paths
 from MainUtils import *
 
 
+USE_GENERATED_LETTER = True
+
+
 def from_png_to_npy(file_path):
   return file_path.replace('.png', '.npy')
 
@@ -19,7 +22,7 @@ def convert_image_and_save(image_file_name, new_file_name, force_update=False):
     title = get_title_from_path(image_file_name)
     try:
       results = parse_known_image(image, title)
-      output = image_to_letters_image(image, results)
+      output = image_to_letters_image(image, results, use_generated_letter=USE_GENERATED_LETTER)
       np.save(new_file_name, output)
     except Exception as error:
         print('Caught this error: ' + repr(error))
@@ -45,15 +48,17 @@ def letter_to_binary(letter):
 
 
 def single_sample():
-  file_path = 'samples/samples/test/wgmwp.png'
+  file_path = 'samples/samples/val/mmg38.png'
   image = load_image(file_path)
   title = get_title_from_path(file_path)
-  results = parse_known_image(image, title)
-  output = image_to_letters_image(image, results)
+  results = parse_known_image(image, title, plot=False)
+  output = image_to_letters_image(image, results, use_generated_letter=False)
   binary_output = np.vectorize(letter_to_binary)(output)
-  plt.subplot(211).imshow(image)
-  plt.subplot(212).imshow(binary_output)
-  plt.show()
+  # plt.subplot(211).imshow(image)
+  # plt.subplot(211).axis('off')
+  # plt.subplot(212).imshow(binary_output)
+  # plt.subplot(212).axis('off')
+  # plt.show()
 
 
 def main(source, dest):
@@ -67,9 +72,12 @@ def main(source, dest):
 
 
 if __name__ == '__main__':
+  # single_sample()
   import sys
-  if len(sys.argv) == 3:
+  if 2 < len(sys.argv) <= 4:
+    if len(sys.argv) == 4:
+      USE_GENERATED_LETTER = sys.argv[3]
     source, dest = sys.argv[1:3]
     main(source, dest)
   else:
-    print("Missing args <source> and <dest>")
+    print("Missing args <source> <dest> ?<bool: use_generated_letter>")

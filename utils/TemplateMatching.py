@@ -1,4 +1,7 @@
 import random
+from typing import List
+
+from matplotlib import pyplot as plt
 
 from model.Letter import Letter
 from model.TemplateScore import TemplateScore
@@ -10,7 +13,7 @@ import numpy as np
 import itertools
 
 
-def find_best_template(image, templates, options=None, invalid_positions=None):
+def find_best_template(image, templates, options=None, invalid_positions=None) -> TemplateScore:
   threshold_boundary = 50
 
   inverted_image = 255 - image.copy()
@@ -72,12 +75,13 @@ def find_best_template(image, templates, options=None, invalid_positions=None):
       # plt.show()
 
       best_template = TemplateScore(score=current_score, crop_image=cut_image.copy(), template_rect=best_rect,
-                                    overlap_score=points_in_common, option_used=None, image_valid_points=base_img)
+                                    overlap_score=points_in_common, option_used=None, image_valid_points=base_img,
+                                    template=template)
 
   return best_template
 
 
-def parse_known_image(image, title, try_count=15):
+def parse_known_image(image, title, try_count=15, plot=False):
   results = []
   new_title = ''
   letters = list(title)
@@ -103,6 +107,12 @@ def parse_known_image(image, title, try_count=15):
         letter_image_position=best_template.image_valid_points)
       results.append((best_template.score, best_letter))
       image_copy = best_template.crop_image
+      if plot:
+        plt.subplot(211).imshow(image_copy)
+        plt.subplot(211).axis('off')
+        plt.subplot(212).imshow(best_template.image_valid_points)
+        plt.subplot(212).axis('off')
+        plt.show()
     results = sorted(results, key=lambda x: x[1].rect[0])
     new_title = ''.join(list(map(lambda x: x[1].letter, results)))
     if new_title == title:
@@ -121,10 +131,16 @@ def parse_known_image(image, title, try_count=15):
   return np.array(results)[:, 1]
 
 
-def image_to_letters_image(image, templates, background='_'):
+def image_to_letters_image(image, templates: List[Letter], background='_', use_generated_letter=False):
   output = np.full(image.shape, background)
   for tmp in templates:
-    output[tmp.letter_image_position == 0] = tmp.letter
+    if use_generated_letter:
+      x, y, w, h = tmp.rect
+      letter = generate_letter_image(tmp.letter)
+      letter = cv2.resize(letter, (w,h))
+      output[y:y+h, x:x+w][letter <= 125] = tmp.letter
+    else:
+      output[tmp.letter_image_position == 0] = tmp.letter
   return output
 
 
